@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>MNLive Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#080b12;--card:#141927;--accent:#e8b84b;--tx:#eef0f7;--tx2:#8892a8;
+  --br:rgba(255,255,255,.07);--red:#e84b4b;--green:#3ecf6e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+
+.login-box{background:var(--card);border:1px solid var(--br);border-radius:16px;padding:36px;width:100%;max-width:360px;text-align:center;}
+.login-box h2{font-size:22px;color:var(--accent);margin-bottom:6px;}
+.login-box p{font-size:13px;color:var(--tx2);margin-bottom:24px;}
+input[type=password],input[type=text],textarea,select{
+  width:100%;background:#0f1320;border:1px solid var(--br);border-radius:8px;
+  padding:10px 14px;color:var(--tx);font-family:'Outfit',sans-serif;font-size:14px;
+  outline:none;transition:border .2s;
+}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);}
+textarea{resize:vertical;min-height:200px;margin-top:10px;}
+.btn{
+  width:100%;margin-top:14px;padding:11px;border:none;border-radius:8px;
+  background:var(--accent);color:#0a0d14;font-family:'Outfit',sans-serif;
+  font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s;
+}
+.btn:hover{opacity:.85}
+
+.panel{display:none;width:100%;max-width:560px;padding:16px;}
+.panel-card{background:var(--card);border:1px solid var(--br);border-radius:16px;padding:28px;margin-bottom:16px;}
+.panel-card h3{font-size:16px;color:var(--accent);margin-bottom:16px;}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.header h2{font-size:20px;color:var(--accent);}
+.logout{background:none;border:1px solid var(--br);border-radius:8px;color:var(--tx2);padding:6px 14px;cursor:pointer;font-size:12px;transition:all .2s;}
+.logout:hover{border-color:var(--red);color:var(--red);}
+.file-list{margin-top:12px;display:flex;flex-direction:column;gap:6px;}
+.file-row{display:flex;align-items:center;justify-content:space-between;background:#0f1320;border:1px solid var(--br);border-radius:8px;padding:8px 12px;}
+.file-nm{font-size:13px;color:var(--tx);}
+.del-btn{background:none;border:none;color:var(--tx2);cursor:pointer;font-size:18px;transition:color .2s;}
+.del-btn:hover{color:var(--red);}
+.hint{font-size:11px;color:var(--tx2);margin-top:8px;}
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--card);border:1px solid var(--br);border-radius:10px;
+  padding:10px 20px;font-size:13px;color:var(--tx);
+  opacity:0;pointer-events:none;transition:opacity .3s;white-space:nowrap;
+}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<script>
+const GITHUB_TOKEN  = 'YOUR_TOKEN_HERE';
+const GITHUB_USER   = 'marufnayem';
+const GITHUB_REPO   = 'mnlivetv';
+const GITHUB_BRANCH = 'main';
+const ADMIN_PASS    = 'YOUR_PASSWORD_HERE';
+</script>
+
+<!-- LOGIN -->
+<div class="login-box" id="loginBox">
+  <h2>MNLive Admin</h2>
+  <p>Enter your password to continue</p>
+  <input type="password" id="passIn" placeholder="Password" onkeydown="if(event.key==='Enter')login()"/>
+  <button class="btn" onclick="login()">Login</button>
+</div>
+
+<!-- PANEL -->
+<div class="panel" id="panel">
+  <div class="header">
+    <h2>MNLive Admin</h2>
+    <button class="logout" onclick="logout()">Logout</button>
+  </div>
+
+  <!-- Upload -->
+  <div class="panel-card">
+    <h3>Upload File to GitHub</h3>
+    <select id="fileType">
+      <option value="m3u">playlist.m3u</option>
+      <option value="json">channels.json</option>
+      <option value="custom">Custom filename</option>
+    </select>
+    <div id="customNameRow" style="display:none;margin-top:10px;">
+      <input type="text" id="customName" placeholder="e.g. extra.m3u or sports.json"/>
+    </div>
+    <textarea id="fileContent" placeholder="Paste your M3U or JSON content here..."></textarea>
+    <button class="btn" onclick="uploadFile()">Upload to GitHub</button>
+    <p class="hint">Warning: Existing file with the same name will be replaced.</p>
+  </div>
+
+  <!-- Files -->
+  <div class="panel-card">
+    <h3>Files in Repo</h3>
+    <div class="file-list" id="fileList">Loading...</div>
+    <button class="btn" style="margin-top:14px;background:#1c2233;color:var(--tx2);" onclick="loadFiles()">Refresh</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function login(){
+  if(document.getElementById('passIn').value===ADMIN_PASS){
+    document.getElementById('loginBox').style.display='none';
+    document.getElementById('panel').style.display='block';
+    loadFiles();
+  } else { toast('Wrong password'); }
+}
+function logout(){
+  document.getElementById('loginBox').style.display='flex';
+  document.getElementById('panel').style.display='none';
+  document.getElementById('passIn').value='';
+}
+
+document.getElementById('fileType').addEventListener('change',function(){
+  document.getElementById('customNameRow').style.display=this.value==='custom'?'block':'none';
+});
+
+function getFileName(){
+  const t=document.getElementById('fileType').value;
+  if(t==='m3u') return 'playlist.m3u';
+  if(t==='json') return 'channels.json';
+  return document.getElementById('customName').value.trim();
+}
+
+async function uploadFile(){
+  const name=getFileName();
+  const content=document.getElementById('fileContent').value.trim();
+  if(!name){toast('Enter a file name');return;}
+  if(!content){toast('Content is empty');return;}
+  toast('Uploading...');
+  let sha=null;
+  try{
+    const check=await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${name}?ref=${GITHUB_BRANCH}`,{
+      headers:{'Authorization':`token ${GITHUB_TOKEN}`,'Accept':'application/vnd.github.v3+json'}
+    });
+    if(check.ok){const d=await check.json();sha=d.sha;}
+  }catch{}
+  const body={message:`Update ${name} via admin panel`,content:btoa(unescape(encodeURIComponent(content))),branch:GITHUB_BRANCH};
+  if(sha) body.sha=sha;
+  const res=await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${name}`,{
+    method:'PUT',
+    headers:{'Authorization':`token ${GITHUB_TOKEN}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+    body:JSON.stringify(body)
+  });
+  if(res.ok){toast('Upload successful! Netlify is deploying...');document.getElementById('fileContent').value='';loadFiles();}
+  else{const err=await res.json();toast('Error: '+(err.message||'Unknown'));}
+}
+
+async function loadFiles(){
+  const list=document.getElementById('fileList');
+  list.innerHTML='Loading...';
+  try{
+    const res=await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/?ref=${GITHUB_BRANCH}`,{
+      headers:{'Authorization':`token ${GITHUB_TOKEN}`,'Accept':'application/vnd.github.v3+json'}
+    });
+    const files=await res.json();
+    const show=files.filter(f=>f.type==='file'&&(f.name.endsWith('.m3u')||f.name.endsWith('.m3u8')||f.name.endsWith('.json')));
+    if(!show.length){list.innerHTML='<p style="font-size:13px;color:var(--tx2)">No files found</p>';return;}
+    list.innerHTML=show.map(f=>`
+      <div class="file-row">
+        <span class="file-nm">${f.name}</span>
+        <button class="del-btn" onclick="deleteFile('${f.name}','${f.sha}')" title="Delete">x</button>
+      </div>`).join('');
+  }catch{list.innerHTML='<p style="color:var(--red);font-size:13px">Failed to load files</p>';}
+}
+
+async function deleteFile(name,sha){
+  if(!confirm(`Delete "${name}"?`)) return;
+  toast('Deleting...');
+  const res=await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${name}`,{
+    method:'DELETE',
+    headers:{'Authorization':`token ${GITHUB_TOKEN}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+    body:JSON.stringify({message:`Delete ${name} via admin panel`,sha,branch:GITHUB_BRANCH})
+  });
+  if(res.ok){toast('Deleted!');loadFiles();}
+  else toast('Delete failed');
+}
+
+let tt;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),3500);
+}
+</script>
+</body>
+</html>
