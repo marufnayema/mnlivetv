@@ -575,8 +575,18 @@ async function boot(){
     addSource('channels.json',Array.isArray(d)?d:(d.channels||[]),true);
   }catch{
     addSource('Demo Channels',demoChannels(),true);
-    toast('📂 Demo mode — add channels.json to serve real channels');
+    toast('Demo mode — add channels.json to serve real channels');
   }
+  try{
+    const r=await fetch('./playlist.m3u');
+    if(!r.ok) throw 0;
+    addSource('playlist.m3u',parseM3U(await r.text()),true);
+  }catch{}
+  try{
+    const r=await fetch('./playlist2.m3u');
+    if(!r.ok) throw 0;
+    addSource('playlist2.m3u',parseM3U(await r.text()),true);
+  }catch{}
 }
 
 // ═══════════════════════════════════════════
