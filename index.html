@@ -584,9 +584,9 @@ async function boot(){
   }catch{}
 
    try{
-    const r=await fetch('./playlist(1).m3u');
+    const r=await fetch('./playlist2.m3u;
     if(!r.ok) throw 0;
-    addSource('playlist(1).m3u',parseM3U(await r.text()),true);
+    addSource('playlist2.m3u',parseM3U(await r.text()),true);
   }catch{}
 
 }
