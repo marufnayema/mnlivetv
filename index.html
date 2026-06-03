@@ -578,7 +578,7 @@ async function boot(){
     toast('📂 Demo mode — add channels.json to serve real channels');
   }
   try{
-    const r=await fetch('playlist.m3u');
+    const r=await fetch('./playlist.m3u');
     if(!r.ok) throw 0;
     addSource('playlist.m3u',parseM3U(await r.text()),true);
   }catch{}
