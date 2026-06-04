@@ -576,10 +576,15 @@ async function boot(){
     if(!r.ok) throw 0;
     const d=await r.json();
     addSource('channels.json',Array.isArray(d)?d:(d.channels||[]),true);
-  }catch{
-    addSource('Demo Channels',demoChannels(),true);
-    toast('Demo mode — add channels.json to serve real channels');
-  }
+  }catch{}
+
+  try{
+  const r=await fetch('https://raw.githubusercontent.com/SHAJON-404/iptv/refs/heads/main/channels.json');
+  if(!r.ok) throw 0;
+  const d=await r.json();
+  addSource('SHAJON-404 Channels',Array.isArray(d)?d:(d.channels||[]),true);
+}catch{}
+     
   try{
     const r=await fetch('./playlist.m3u');
     if(!r.ok) throw 0;
