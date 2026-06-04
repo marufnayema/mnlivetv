@@ -595,6 +595,12 @@ async function boot(){
     if(!r.ok) throw 0;
     addSource('playlist2.m3u',parseM3U(await r.text()),true);
   }catch{}
+
+  try{
+  const r=await fetch('https://iptv-org.github.io/iptv/index.m3u');
+  if(!r.ok) throw 0;
+  addSource('IPTV-ORG All Channels',parseM3U(await r.text()),true);
+}catch{}
 }
 
 // ═══════════════════════════════════════════
